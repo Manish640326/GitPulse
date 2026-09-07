@@ -22,6 +22,12 @@ The goal is simple:
 Watch the full walkthrough here:  
 [GitPulse Demo Video (Google Drive)](https://drive.google.com/drive/folders/10ujctlrAttuXb4_WgJcSfHwjRdV2eguD)
 
+# TechVision 🚀
+
+## Team Members
+- Manish Dhami  
+- Priyam Agrawal
+
 # 🎯 Problem
 
 Developers can accidentally commit sensitive information such as:
