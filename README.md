@@ -17,6 +17,10 @@ The goal is simple:
 💻 **GitHub:** https://github.com/Manish640326/GitPulse
 
 ---
+## 🎥 Demo Video
+
+Watch the full walkthrough here:  
+[GitPulse Demo Video (Google Drive)](https://drive.google.com/drive/folders/10ujctlrAttuXb4_WgJcSfHwjRdV2eguD)
 
 # 🎯 Problem
 
