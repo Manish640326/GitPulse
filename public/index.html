@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GitPulse - Git Pre-Commit Secret Interceptor & Auto-Remediator</title>
+  <title>GitPulse — Stop Secrets Before They Reach Git</title>
   <link rel="icon" href="https://img.icons8.com/fluency/48/shield.png">
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -14,7 +14,7 @@
         extend: {
           colors: {
             brand: { 500: '#3B82F6', 600: '#2563EB', 700: '#1D4ED8' },
-            dark: { 900: '#0B0F19', 800: '#111827', 700: '#1F2937', 600: '#374151' }
+            dark: { 950: '#070A12', 900: '#0B0F19', 850: '#0E1422', 800: '#111827', 700: '#1F2937', 600: '#374151' }
           }
         }
       }
@@ -22,63 +22,151 @@
   </script>
   <style>
     pre code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
-    .glass-card { background: rgba(17, 24, 39, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); }
+    .glass-card { background: rgba(14, 20, 34, 0.85); backdrop-filter: blur(14px); border: 1px solid rgba(255, 255, 255, 0.08); }
+    .glass-card:hover { border-color: rgba(59, 130, 246, 0.3); }
     ::-webkit-scrollbar { width: 8px; height: 8px; }
-    ::-webkit-scrollbar-track { background: #0B0F19; }
-    ::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; }
+    ::-webkit-scrollbar-track { background: #070A12; }
+    ::-webkit-scrollbar-thumb { background: #1F2937; border-radius: 4px; }
+    .glow-effect { box-shadow: 0 0 35px -5px rgba(59, 130, 246, 0.25); }
   </style>
 </head>
-<body class="bg-dark-900 text-gray-100 min-h-screen font-sans antialiased flex flex-col">
+<body class="bg-dark-950 text-gray-100 min-h-screen font-sans antialiased flex flex-col selection:bg-blue-600 selection:text-white">
+
+  <!-- Top Announcement / Privacy Pill -->
+  <div class="bg-blue-950/60 border-b border-blue-500/20 px-4 py-1.5 text-center text-xs text-blue-300 flex items-center justify-center space-x-2">
+    <i class="fa-solid fa-lock text-blue-400"></i>
+    <span><strong>Privacy Notice:</strong> Code analysis is executed entirely in-memory. Demo examples use simulated mock credentials.</span>
+  </div>
 
   <!-- Navigation Bar -->
-  <header class="border-b border-gray-800 bg-dark-800/80 sticky top-0 z-50 backdrop-blur">
+  <header class="border-b border-gray-800/80 bg-dark-900/80 sticky top-0 z-50 backdrop-blur">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
       <div class="flex items-center space-x-3">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
           <i class="fa-solid fa-shield-halved text-white text-xl"></i>
         </div>
         <div>
-          <span class="text-xl font-extrabold bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-400 bg-clip-text text-transparent">GitPulse</span>
-          <span class="ml-2 text-xs bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded-full font-medium">DevSecOps Guardrail</span>
+          <span class="text-xl font-black bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-400 bg-clip-text text-transparent">GitPulse</span>
+          <span class="ml-2 text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full font-semibold">Pre-Commit Guardrail</span>
         </div>
       </div>
       <div class="flex items-center space-x-4">
-        <a href="https://github.com/Manish640326/GitPulse" target="_blank" class="flex items-center space-x-2 text-sm text-gray-400 hover:text-white transition">
-          <i class="fa-brands fa-github text-lg"></i>
-          <span class="hidden sm:inline">GitHub</span>
+        <a href="#git-hook-section" class="text-xs font-semibold text-gray-400 hover:text-blue-400 transition hidden sm:inline">Pre-Commit Hook</a>
+        <a href="#architecture-section" class="text-xs font-semibold text-gray-400 hover:text-blue-400 transition hidden sm:inline">Architecture</a>
+        <a href="https://github.com/Manish640326/GitPulse" target="_blank" class="flex items-center space-x-2 text-xs font-semibold bg-dark-800 hover:bg-dark-700 border border-gray-700 px-3 py-1.5 rounded-lg transition">
+          <i class="fa-brands fa-github text-sm"></i>
+          <span>GitHub</span>
         </a>
       </div>
     </div>
   </header>
 
   <!-- Main Container -->
-  <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-    
-    <!-- Hero Banner -->
-    <div class="relative overflow-hidden rounded-2xl p-6 sm:p-8 bg-gradient-to-r from-blue-900/40 via-indigo-900/30 to-purple-900/40 border border-blue-500/20">
-      <div class="relative z-10 max-w-3xl">
-        <h1 class="text-3xl sm:text-4xl font-black text-white tracking-tight">Git Pre-Commit Secret Interceptor</h1>
-        <p class="mt-2 text-base sm:text-lg text-gray-300">
-          Intercept hardcoded credentials before they are committed, analyze randomness using <span class="text-blue-400 font-semibold">Shannon Entropy</span>, and generate instant unified remediation patches.
+  <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10">
+
+    <!-- 1. Hero Section: Purpose Obvious Within 5 Seconds -->
+    <div class="relative overflow-hidden rounded-3xl p-8 sm:p-10 bg-gradient-to-br from-blue-950/60 via-dark-850 to-purple-950/40 border border-blue-500/30 glow-effect">
+      <div class="relative z-10 max-w-3xl space-y-4">
+        <!-- 3 Feature Badges -->
+        <div class="flex flex-wrap gap-2 text-xs font-bold tracking-wide">
+          <span class="bg-blue-500/15 text-blue-300 border border-blue-500/30 px-3 py-1 rounded-full flex items-center space-x-1.5">
+            <i class="fa-solid fa-crosshairs text-blue-400"></i>
+            <span>Secret Detection</span>
+          </span>
+          <span class="bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 px-3 py-1 rounded-full flex items-center space-x-1.5">
+            <i class="fa-solid fa-chart-simple text-indigo-400"></i>
+            <span>Entropy Analysis</span>
+          </span>
+          <span class="bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 px-3 py-1 rounded-full flex items-center space-x-1.5">
+            <i class="fa-solid fa-wand-magic-sparkles text-emerald-400"></i>
+            <span>Auto Remediation</span>
+          </span>
+        </div>
+
+        <h1 class="text-3xl sm:text-5xl font-black text-white tracking-tight leading-tight">
+          GitPulse — Stop Secrets Before They Reach Git
+        </h1>
+        
+        <p class="text-base sm:text-lg text-gray-300 leading-relaxed">
+          Detect hardcoded API keys, passwords and tokens before commit. Analyze risk, explain why it was flagged, and automatically generate a safe remediation patch.
         </p>
+
+        <!-- 8. Real-world Demonstration Button (30-second Demo) -->
+        <div class="pt-2 flex flex-wrap gap-3">
+          <button onclick="triggerQuickDemo()" class="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-dark-950 font-black px-6 py-3 rounded-xl shadow-lg shadow-amber-500/25 flex items-center space-x-2 transition text-sm">
+            <i class="fa-solid fa-bolt text-dark-950"></i>
+            <span>Try Vulnerable Example (30s Demo)</span>
+          </button>
+          <a href="#workbench-section" class="bg-dark-800 hover:bg-dark-700 border border-gray-700 text-gray-300 font-bold px-5 py-3 rounded-xl flex items-center space-x-2 transition text-sm">
+            <span>Explore Custom Input</span>
+            <i class="fa-solid fa-arrow-down text-xs"></i>
+          </a>
+        </div>
       </div>
-      <div class="absolute -right-8 -bottom-8 text-blue-500/10 text-9xl select-none pointer-events-none">
-        <i class="fa-solid fa-key"></i>
+
+      <div class="absolute -right-8 -bottom-10 text-blue-500/5 text-[220px] select-none pointer-events-none">
+        <i class="fa-solid fa-shield-halved"></i>
       </div>
     </div>
 
-    <!-- Workspace Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+    <!-- 2. Visual Security Dashboard (High Impact Results) -->
+    <div id="visualDashboard" class="space-y-4">
+      <div class="flex items-center justify-between">
+        <h2 class="text-sm font-bold uppercase tracking-wider text-gray-400 flex items-center space-x-2">
+          <i class="fa-solid fa-gauge-high text-blue-400"></i>
+          <span>Security Risk Posture</span>
+        </h2>
+        <span id="scanStatusIndicator" class="text-xs font-mono text-gray-400">Ready to scan</span>
+      </div>
+
+      <!-- 3 Visual Dashboard Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <!-- Box 1: Secrets -->
+        <div class="glass-card rounded-2xl p-6 text-center border-l-4 border-l-red-500 space-y-1">
+          <div class="text-xs font-bold uppercase tracking-wider text-gray-400">Intercepted Secrets</div>
+          <div id="dashSecretsCount" class="text-4xl sm:text-5xl font-black text-red-400">-</div>
+          <div id="dashSecretsSubtitle" class="text-xs text-gray-500">Run scan to evaluate code</div>
+        </div>
+
+        <!-- Box 2: Peak Entropy -->
+        <div class="glass-card rounded-2xl p-6 text-center border-l-4 border-l-amber-500 space-y-1">
+          <div class="text-xs font-bold uppercase tracking-wider text-gray-400">Peak Shannon Entropy</div>
+          <div id="dashEntropyVal" class="text-4xl sm:text-5xl font-black text-amber-400">-</div>
+          <div id="dashEntropySubtitle" class="text-xs text-gray-500">Threshold: &gt; 3.80 bits</div>
+        </div>
+
+        <!-- Box 3: Risk Level -->
+        <div class="glass-card rounded-2xl p-6 text-center border-l-4 border-l-purple-500 space-y-1">
+          <div class="text-xs font-bold uppercase tracking-wider text-gray-400">Security Risk</div>
+          <div id="dashRiskBadge" class="text-3xl sm:text-4xl font-black text-gray-400 mt-1">-</div>
+          <div id="dashRiskSubtitle" class="text-xs text-gray-500">Commit Status Guardrail</div>
+        </div>
+      </div>
+
+      <!-- Detected Secrets Feed Summary (Requirement 2) -->
+      <div id="detectedFeedCard" class="hidden glass-card rounded-2xl p-5 space-y-3">
+        <div class="text-xs font-bold uppercase tracking-wider text-gray-400 flex items-center justify-between border-b border-gray-800 pb-2">
+          <span>Detected Secrets Summary</span>
+          <span class="text-gray-500">Classification Level</span>
+        </div>
+        <div id="detectedFeedList" class="space-y-2">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Workspace: Input on Left, Findings & Remediation on Right -->
+    <div id="workbench-section" class="grid grid-cols-1 lg:grid-cols-12 gap-8">
 
       <!-- Left Column: Input Workbench -->
       <div class="lg:col-span-5 space-y-6">
         <div class="glass-card rounded-2xl p-6 shadow-xl space-y-5">
           <div class="flex items-center justify-between">
-            <h2 class="text-lg font-bold flex items-center space-x-2 text-white">
+            <h2 class="text-base font-bold flex items-center space-x-2 text-white">
               <i class="fa-solid fa-code text-blue-400"></i>
-              <span>Input Source</span>
+              <span>Code / Diff Input</span>
             </h2>
-            <div class="flex space-x-1 bg-dark-900 p-1 rounded-lg border border-gray-700 text-xs font-semibold">
+            <div class="flex space-x-1 bg-dark-900 p-1 rounded-lg border border-gray-700/80 text-xs font-semibold">
               <button id="tabPreset" onclick="switchMode('preset')" class="px-3 py-1.5 rounded-md bg-blue-600 text-white transition">Presets</button>
               <button id="tabUpload" onclick="switchMode('upload')" class="px-3 py-1.5 rounded-md text-gray-400 hover:text-white transition">Upload</button>
               <button id="tabPaste" onclick="switchMode('paste')" class="px-3 py-1.5 rounded-md text-gray-400 hover:text-white transition">Paste</button>
@@ -87,27 +175,28 @@
 
           <!-- Mode 1: Presets -->
           <div id="panelPreset" class="space-y-3">
-            <label class="block text-xs font-semibold uppercase text-gray-400">Select Vulnerable Scenario</label>
-            <select id="presetSelect" onchange="loadPreset()" class="w-full bg-dark-900 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-gray-200 focus:outline-none focus:border-blue-500">
-              <option value="vulnerable_python">🐍 Python App (AWS, OpenAI, DB Password)</option>
-              <option value="cloud_diff">📄 Git Diff (AWS Key, GitHub Token, Stripe)</option>
+            <label class="block text-xs font-semibold uppercase text-gray-400">Pre-built Test Scenario</label>
+            <select id="presetSelect" onchange="loadPreset()" class="w-full bg-dark-900 border border-gray-700 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-gray-200 focus:outline-none focus:border-blue-500">
+              <option value="quick_demo">⚡ 30-Second Interview Demo (DB Password + API Key)</option>
+              <option value="vulnerable_python">🐍 Python Service (AWS Keys, OpenAI, DB Hash)</option>
+              <option value="cloud_diff">📄 Git Diff Commit (AWS Key, GitHub Token, Stripe)</option>
               <option value="js_config">⚡ Node.js Config (Stripe Key & Slack Bot Token)</option>
             </select>
           </div>
 
           <!-- Mode 2: File Upload -->
           <div id="panelUpload" class="hidden space-y-3">
-            <label class="block text-xs font-semibold uppercase text-gray-400">Upload Code / Diff File</label>
-            <input type="file" id="fileInput" onchange="handleFileUpload(event)" class="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer">
+            <label class="block text-xs font-semibold uppercase text-gray-400">Upload Source File or .diff</label>
+            <input type="file" id="fileInput" onchange="handleFileUpload(event)" class="w-full text-xs text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer">
           </div>
 
           <!-- Mode 3: Raw Paste -->
           <div id="panelPaste" class="hidden space-y-3">
             <div class="flex space-x-4 items-center">
-              <label class="text-xs font-semibold uppercase text-gray-400">Content Type:</label>
+              <label class="text-xs font-semibold uppercase text-gray-400">Input Mode:</label>
               <label class="text-xs flex items-center space-x-1 cursor-pointer">
                 <input type="radio" name="pasteType" value="code" checked onchange="updatePastePlaceholder()">
-                <span>Code File</span>
+                <span>Source Code</span>
               </label>
               <label class="text-xs flex items-center space-x-1 cursor-pointer">
                 <input type="radio" name="pasteType" value="diff" onchange="updatePastePlaceholder()">
@@ -116,120 +205,167 @@
             </div>
           </div>
 
-          <!-- Code View Area -->
+          <!-- Code Editor Area -->
           <div class="space-y-2">
             <div class="flex justify-between items-center text-xs text-gray-400">
-              <span id="currentFilenameBadge" class="font-mono bg-dark-900 px-2.5 py-1 rounded border border-gray-800">service.py</span>
+              <span id="currentFilenameBadge" class="font-mono bg-dark-900 px-2.5 py-1 rounded border border-gray-800">database_service.py</span>
               <span id="diffBadge" class="hidden text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20 font-medium">Git Diff Stream</span>
             </div>
-            <textarea id="codeEditor" rows="12" class="w-full bg-dark-900 border border-gray-700/80 rounded-xl p-4 font-mono text-xs text-gray-200 focus:outline-none focus:border-blue-500 leading-relaxed"></textarea>
+            <textarea id="codeEditor" rows="12" class="w-full bg-dark-900 border border-gray-800 rounded-xl p-4 font-mono text-xs text-gray-200 focus:outline-none focus:border-blue-500 leading-relaxed resize-y"></textarea>
           </div>
 
-          <!-- Action Button -->
-          <button onclick="runScanner()" id="scanBtn" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold py-3 px-6 rounded-xl shadow-lg shadow-blue-600/30 flex items-center justify-center space-x-2 transition">
-            <i class="fa-solid fa-radar text-lg"></i>
+          <!-- Scan Action Button -->
+          <button onclick="runScanner()" id="scanBtn" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold py-3 px-6 rounded-xl shadow-lg shadow-blue-600/30 flex items-center justify-center space-x-2 transition text-sm">
+            <i class="fa-solid fa-radar text-base"></i>
             <span>Run GitPulse Scanner</span>
           </button>
         </div>
-      </div>
 
-      <!-- Right Column: Security Analysis & Remediation -->
-      <div class="lg:col-span-7 space-y-6">
+        <!-- 7. Supported Secrets & Supported Languages -->
+        <div class="glass-card rounded-2xl p-6 space-y-4">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400 flex items-center space-x-2">
+            <i class="fa-solid fa-list-check text-blue-400"></i>
+            <span>Detection Coverage</span>
+          </h3>
 
-        <!-- Top Metrics Cards -->
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <div class="glass-card rounded-xl p-4 text-center">
-            <span class="text-xs font-semibold text-gray-400 uppercase">Secrets Flagged</span>
-            <div id="statSecrets" class="text-2xl font-black text-red-400 mt-1">-</div>
+          <div class="space-y-2">
+            <div class="text-[11px] uppercase font-bold text-gray-400">Detects:</div>
+            <div class="flex flex-wrap gap-1.5 text-xs">
+              <span class="bg-dark-900 border border-gray-800 text-gray-300 px-2.5 py-1 rounded-lg">API keys</span>
+              <span class="bg-dark-900 border border-gray-800 text-gray-300 px-2.5 py-1 rounded-lg">Access tokens</span>
+              <span class="bg-dark-900 border border-gray-800 text-gray-300 px-2.5 py-1 rounded-lg">Database credentials</span>
+              <span class="bg-dark-900 border border-gray-800 text-gray-300 px-2.5 py-1 rounded-lg">Private keys</span>
+              <span class="bg-dark-900 border border-gray-800 text-gray-300 px-2.5 py-1 rounded-lg">Hardcoded passwords</span>
+              <span class="bg-dark-900 border border-gray-800 text-gray-300 px-2.5 py-1 rounded-lg">Cloud credentials (AWS, GCP, GitHub, Stripe, Slack)</span>
+            </div>
           </div>
-          <div class="glass-card rounded-xl p-4 text-center">
-            <span class="text-xs font-semibold text-gray-400 uppercase">Peak Entropy</span>
-            <div id="statEntropy" class="text-2xl font-black text-amber-400 mt-1">-</div>
-          </div>
-          <div class="glass-card rounded-xl p-4 text-center">
-            <span class="text-xs font-semibold text-gray-400 uppercase">Risk Status</span>
-            <div id="statRisk" class="text-base font-black text-gray-300 mt-2">-</div>
-          </div>
-          <div class="glass-card rounded-xl p-4 text-center">
-            <span class="text-xs font-semibold text-gray-400 uppercase">Target Language</span>
-            <div id="statLang" class="text-base font-black text-blue-400 mt-2">Python</div>
+
+          <div class="space-y-2 pt-2 border-t border-gray-800">
+            <div class="text-[11px] uppercase font-bold text-gray-400">Supported Languages:</div>
+            <div class="flex flex-wrap gap-1.5 text-xs font-mono">
+              <span class="bg-blue-500/10 border border-blue-500/20 text-blue-300 px-2 py-0.5 rounded">Python</span>
+              <span class="bg-amber-500/10 border border-amber-500/20 text-amber-300 px-2 py-0.5 rounded">JavaScript</span>
+              <span class="bg-blue-500/10 border border-blue-500/20 text-blue-300 px-2 py-0.5 rounded">TypeScript</span>
+              <span class="bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded">Go</span>
+              <span class="bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded">Shell / Bash</span>
+              <span class="bg-red-500/10 border border-red-500/20 text-red-300 px-2 py-0.5 rounded">Ruby</span>
+            </div>
           </div>
         </div>
 
-        <!-- Findings List -->
+      </div>
+
+      <!-- Right Column: 3. "Why was this flagged?" & 4. Remediation Transformation -->
+      <div class="lg:col-span-7 space-y-6">
+
+        <!-- Flagged Secrets Details -->
         <div class="glass-card rounded-2xl p-6 shadow-xl space-y-4">
           <div class="flex items-center justify-between border-b border-gray-800 pb-3">
-            <h3 class="text-base font-bold text-white flex items-center space-x-2">
-              <i class="fa-solid fa-triangle-exclamation text-amber-400"></i>
-              <span>Intercepted Credentials</span>
-            </h3>
-            <label class="flex items-center space-x-2 text-xs text-gray-400 cursor-pointer">
+            <div>
+              <h3 class="text-base font-bold text-white flex items-center space-x-2">
+                <i class="fa-solid fa-magnifying-glass-chart text-blue-400"></i>
+                <span>Flagged Secrets & Technical Reasoning</span>
+              </h3>
+              <p class="text-xs text-gray-400 mt-0.5">Transparent explainability showing why each token was intercepted.</p>
+            </div>
+            <label class="flex items-center space-x-2 text-xs text-gray-400 cursor-pointer bg-dark-900 border border-gray-800 px-2.5 py-1 rounded-lg">
               <input type="checkbox" id="unmaskToggle" onchange="renderFindings()" class="rounded bg-dark-900 border-gray-700 text-blue-600 focus:ring-0">
               <span>Reveal Plaintext</span>
             </label>
           </div>
 
-          <div id="findingsContainer" class="space-y-3 min-h-[160px] max-h-[360px] overflow-y-auto pr-1">
-            <div class="text-center py-12 text-gray-500 text-sm">Click "Run GitPulse Scanner" to scan code diffs for secrets.</div>
+          <div id="findingsContainer" class="space-y-4 min-h-[160px] max-h-[440px] overflow-y-auto pr-1">
+            <div class="text-center py-16 text-gray-500 text-sm">
+              <i class="fa-solid fa-radar text-3xl mb-2 text-gray-600 block"></i>
+              Click <strong>"Run GitPulse Scanner"</strong> or <strong>"Try Vulnerable Example"</strong> to inspect code.
+            </div>
           </div>
         </div>
 
-        <!-- Remediation & Patch Section -->
+        <!-- 4. Improved Remediation Section -->
         <div id="remediationCard" class="hidden glass-card rounded-2xl p-6 shadow-xl space-y-5">
-          <div class="flex items-center justify-between border-b border-gray-800 pb-3">
-            <div>
-              <h3 class="text-base font-bold text-white flex items-center space-x-2">
-                <i class="fa-solid fa-wand-magic-sparkles text-emerald-400"></i>
-                <span>Auto-Remediation & Patch Generator</span>
-              </h3>
-              <p class="text-xs text-gray-400 mt-0.5">Secrets dynamically converted to environment variable lookups.</p>
-            </div>
-            <div class="flex space-x-1 bg-dark-900 p-1 rounded-lg border border-gray-700 text-xs font-semibold">
-              <button id="tabDiff" onclick="switchOutputTab('diff')" class="px-3 py-1 rounded bg-blue-600 text-white">Unified Patch</button>
-              <button id="tabSide" onclick="switchOutputTab('side')" class="px-3 py-1 rounded text-gray-400 hover:text-white">Side-by-Side</button>
-              <button id="tabEnv" onclick="switchOutputTab('env')" class="px-3 py-1 rounded text-gray-400 hover:text-white">.env.example</button>
-            </div>
-          </div>
-
-          <!-- View: Unified Patch -->
-          <div id="viewDiff" class="space-y-2">
-            <pre class="bg-dark-900 border border-gray-800 rounded-xl p-4 text-xs font-mono text-emerald-400 overflow-x-auto max-h-72"><code id="patchCodeBlock"></code></pre>
-          </div>
-
-          <!-- View: Side-by-Side -->
-          <div id="viewSide" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <span class="text-xs font-bold text-red-400 mb-1 block">❌ Original Code</span>
-              <pre class="bg-dark-900 border border-gray-800 rounded-xl p-3 text-xs font-mono text-red-300 overflow-x-auto max-h-72"><code id="sideOrigBlock"></code></pre>
-            </div>
-            <div>
-              <span class="text-xs font-bold text-emerald-400 mb-1 block">✅ Sanitized Code</span>
-              <pre class="bg-dark-900 border border-gray-800 rounded-xl p-3 text-xs font-mono text-emerald-300 overflow-x-auto max-h-72"><code id="sideRemBlock"></code></pre>
+          
+          <!-- Workflow Stepper -->
+          <div class="border-b border-gray-800 pb-4 space-y-3">
+            <div class="text-xs font-bold uppercase tracking-wider text-gray-400">Remediation Pipeline:</div>
+            <div class="flex flex-wrap items-center gap-2 text-[11px] font-mono">
+              <span class="bg-red-500/20 text-red-300 border border-red-500/30 px-2.5 py-1 rounded-md font-bold">1. SECRET DETECTED</span>
+              <span class="text-gray-600">&rarr;</span>
+              <span class="bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2.5 py-1 rounded-md font-bold">2. EXPLAIN RISK</span>
+              <span class="text-gray-600">&rarr;</span>
+              <span class="bg-blue-500/20 text-blue-300 border border-blue-500/30 px-2.5 py-1 rounded-md font-bold">3. MOVE TO ENV VAR</span>
+              <span class="text-gray-600">&rarr;</span>
+              <span class="bg-purple-500/20 text-purple-300 border border-purple-500/30 px-2.5 py-1 rounded-md font-bold">4. .ENV.EXAMPLE</span>
+              <span class="text-gray-600">&rarr;</span>
+              <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2.5 py-1 rounded-md font-bold">5. GIT PATCH</span>
             </div>
           </div>
 
-          <!-- View: .env.example -->
-          <div id="viewEnv" class="hidden space-y-2">
-            <pre class="bg-dark-900 border border-gray-800 rounded-xl p-4 text-xs font-mono text-blue-300 overflow-x-auto max-h-72"><code id="envCodeBlock"></code></pre>
+          <!-- Code Transformation Preview (Requirement 4) -->
+          <div class="space-y-2">
+            <div class="flex items-center justify-between text-xs">
+              <span class="font-bold text-gray-200 flex items-center space-x-1.5">
+                <i class="fa-solid fa-code-compare text-emerald-400"></i>
+                <span>Automated Code Transformation</span>
+              </span>
+              <span class="text-gray-400">Replaces secret literal with safe environment lookup</span>
+            </div>
+            <div id="transformationBoxes" class="space-y-2 font-mono text-xs">
+              <!-- Populated by JS -->
+            </div>
           </div>
 
-          <!-- Decision Action Buttons -->
-          <div class="pt-2 border-t border-gray-800 flex flex-wrap gap-3">
-            <button onclick="approvePatch()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 px-4 rounded-xl shadow-lg shadow-emerald-600/30 flex items-center justify-center space-x-2 transition">
+          <!-- View Tabs: Patch, Side-by-side, .env.example -->
+          <div class="space-y-3 pt-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold uppercase tracking-wider text-gray-400">Remediation Artifacts:</span>
+              <div class="flex space-x-1 bg-dark-900 p-1 rounded-lg border border-gray-700 text-xs font-semibold">
+                <button id="tabDiff" onclick="switchOutputTab('diff')" class="px-3 py-1 rounded bg-blue-600 text-white">Unified .patch</button>
+                <button id="tabSide" onclick="switchOutputTab('side')" class="px-3 py-1 rounded text-gray-400 hover:text-white">Side-by-Side</button>
+                <button id="tabEnv" onclick="switchOutputTab('env')" class="px-3 py-1 rounded text-gray-400 hover:text-white">.env.example</button>
+              </div>
+            </div>
+
+            <!-- View: Unified Patch -->
+            <div id="viewDiff">
+              <pre class="bg-dark-900 border border-gray-800 rounded-xl p-4 text-xs font-mono text-emerald-400 overflow-x-auto max-h-64 leading-relaxed"><code id="patchCodeBlock"></code></pre>
+            </div>
+
+            <!-- View: Side-by-Side -->
+            <div id="viewSide" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <span class="text-xs font-bold text-red-400 mb-1 block">❌ Original Code (Vulnerable)</span>
+                <pre class="bg-dark-900 border border-gray-800 rounded-xl p-3 text-xs font-mono text-red-300 overflow-x-auto max-h-64"><code id="sideOrigBlock"></code></pre>
+              </div>
+              <div>
+                <span class="text-xs font-bold text-emerald-400 mb-1 block">✅ Sanitized Code (Remediated)</span>
+                <pre class="bg-dark-900 border border-gray-800 rounded-xl p-3 text-xs font-mono text-emerald-300 overflow-x-auto max-h-64"><code id="sideRemBlock"></code></pre>
+              </div>
+            </div>
+
+            <!-- View: .env.example -->
+            <div id="viewEnv" class="hidden">
+              <pre class="bg-dark-900 border border-gray-800 rounded-xl p-4 text-xs font-mono text-blue-300 overflow-x-auto max-h-64"><code id="envCodeBlock"></code></pre>
+            </div>
+          </div>
+
+          <!-- Actions: Approve / Reject Buttons -->
+          <div class="pt-3 border-t border-gray-800 flex flex-wrap gap-3">
+            <button onclick="approvePatch()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 px-4 rounded-xl shadow-lg shadow-emerald-600/30 flex items-center justify-center space-x-2 transition text-sm">
               <i class="fa-solid fa-check"></i>
               <span>Approve Patch</span>
             </button>
-            <button onclick="rejectPatch()" class="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-bold py-2.5 px-4 rounded-xl flex items-center justify-center space-x-2 transition">
+            <button onclick="rejectPatch()" class="flex-1 bg-dark-800 hover:bg-dark-700 border border-gray-700 text-gray-300 font-bold py-2.5 px-4 rounded-xl flex items-center justify-center space-x-2 transition text-sm">
               <i class="fa-solid fa-xmark"></i>
-              <span>Reject / Ignore</span>
+              <span>Reject / False Positive</span>
             </button>
           </div>
 
-          <!-- Approval Downloads Area -->
+          <!-- Downloads Drawer -->
           <div id="downloadsArea" class="hidden bg-emerald-950/40 border border-emerald-500/30 rounded-xl p-4 space-y-3">
             <div class="text-xs font-bold text-emerald-400 flex items-center space-x-2">
               <i class="fa-solid fa-circle-check text-emerald-400"></i>
-              <span>Patch Approved! Download Remediation Artifacts:</span>
+              <span>Patch Approved! Download remediation assets:</span>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <button onclick="downloadPatchFile()" class="bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-semibold py-2 px-3 rounded-lg flex items-center justify-center space-x-1.5 transition">
@@ -253,11 +389,179 @@
 
     </div>
 
+    <!-- 5. Git Integration & Pre-Commit Hook Generator -->
+    <section id="git-hook-section" class="glass-card rounded-3xl p-8 shadow-xl space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-800 pb-6">
+        <div>
+          <h2 class="text-2xl font-black text-white flex items-center space-x-3">
+            <i class="fa-brands fa-git-alt text-orange-500 text-3xl"></i>
+            <span>Git Pre-Commit Hook Integration</span>
+          </h2>
+          <p class="text-sm text-gray-400 mt-1">Intercept and block secrets directly inside your local developer terminal before commits are finalized.</p>
+        </div>
+        <div class="flex items-center space-x-2">
+          <button onclick="copyPreCommitScript()" class="bg-dark-800 hover:bg-dark-700 border border-gray-700 text-xs font-semibold text-gray-200 px-3 py-2 rounded-lg flex items-center space-x-1.5 transition">
+            <i class="fa-regular fa-copy"></i>
+            <span>Copy Hook Script</span>
+          </button>
+          <button onclick="copyPreCommitYaml()" class="bg-blue-600 hover:bg-blue-500 text-xs font-semibold text-white px-3 py-2 rounded-lg flex items-center space-x-1.5 transition">
+            <i class="fa-solid fa-download"></i>
+            <span>Copy .pre-commit-config.yaml</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Lifecycle Flow Diagram -->
+      <div class="bg-dark-900/90 border border-gray-800 rounded-2xl p-6 text-center">
+        <div class="text-xs font-bold uppercase tracking-wider text-gray-400 mb-4">Pre-Commit Security Interception Lifecycle</div>
+        <div class="flex flex-wrap items-center justify-center gap-3 text-xs sm:text-sm font-semibold">
+          <div class="bg-dark-800 border border-gray-700 px-4 py-2.5 rounded-xl text-gray-300">
+            <i class="fa-solid fa-keyboard mr-1.5 text-blue-400"></i> Developer writes code
+          </div>
+          <span class="text-gray-500 font-bold">&rarr;</span>
+          <div class="bg-dark-800 border border-gray-700 px-4 py-2.5 rounded-xl text-gray-300">
+            <i class="fa-solid fa-code-commit mr-1.5 text-indigo-400"></i> git commit
+          </div>
+          <span class="text-gray-500 font-bold">&rarr;</span>
+          <div class="bg-blue-950 border border-blue-500/40 text-blue-300 px-4 py-2.5 rounded-xl font-bold">
+            <i class="fa-solid fa-shield-halved mr-1.5 text-blue-400"></i> GitPulse Scanner
+          </div>
+          <span class="text-gray-500 font-bold">&rarr;</span>
+          <div class="flex flex-col gap-1.5">
+            <div class="bg-red-950/80 border border-red-500/50 text-red-300 px-3 py-1 rounded-lg text-xs font-bold">
+              Secret Found &rarr; ⛔ BLOCK COMMIT (Exit 1)
+            </div>
+            <div class="bg-emerald-950/80 border border-emerald-500/50 text-emerald-300 px-3 py-1 rounded-lg text-xs font-bold">
+              Clean Diff &rarr; ✅ ALLOW COMMIT (Exit 0)
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hook Configuration Code Snippets -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-mono">
+        <div class="space-y-2">
+          <div class="flex justify-between items-center text-gray-400 font-bold">
+            <span>Option A: Framework Config (<code>.pre-commit-config.yaml</code>)</span>
+          </div>
+          <pre class="bg-dark-900 border border-gray-800 rounded-xl p-4 text-gray-300 overflow-x-auto"><code>repos:
+  - repo: local
+    hooks:
+      - id: gitpulse-interceptor
+        name: GitPulse Secret Interceptor
+        entry: py -m gitpulse.cli --staged
+        language: system
+        stages: [commit]</code></pre>
+        </div>
+
+        <div class="space-y-2">
+          <div class="flex justify-between items-center text-gray-400 font-bold">
+            <span>Option B: Native Hook Script (<code>.git/hooks/pre-commit</code>)</span>
+          </div>
+          <pre class="bg-dark-900 border border-gray-800 rounded-xl p-4 text-gray-300 overflow-x-auto"><code>#!/bin/sh
+# GitPulse Pre-Commit Hook
+echo "🛡️ GitPulse: Scanning staged changes..."
+py -m gitpulse.cli --staged
+EXIT_CODE=$?
+if [ $EXIT_CODE -ne 0 ]; then
+    echo "❌ COMMIT BLOCKED: Secret(s) detected!"
+    exit 1
+fi
+exit 0</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6 & 9. Detection Architecture & Technologies Section -->
+    <section id="architecture-section" class="glass-card rounded-3xl p-8 shadow-xl space-y-6">
+      <div>
+        <h2 class="text-2xl font-black text-white flex items-center space-x-3">
+          <i class="fa-solid fa-network-wired text-purple-400"></i>
+          <span>Multi-Factor Secret Detection Architecture</span>
+        </h2>
+        <p class="text-sm text-gray-400 mt-1">Combining three independent detection heuristics to eliminate false positives and catch zero-day credentials.</p>
+      </div>
+
+      <!-- Multi-Factor Diagram (Requirement 6) -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+        <div class="bg-dark-900 border border-gray-800 rounded-2xl p-5 space-y-2">
+          <div class="text-blue-400 font-bold text-sm flex items-center space-x-2">
+            <i class="fa-solid fa-barcode"></i>
+            <span>1. Regex Pattern Engine</span>
+          </div>
+          <p class="text-gray-400 leading-relaxed">
+            Curated signatures for AWS Access Keys, OpenAI project keys, GitHub PATs, Stripe tokens, Slack webhooks, and private encryption headers.
+          </p>
+          <div class="text-[10px] text-gray-500 font-mono">Weight: 40% Confidence</div>
+        </div>
+
+        <div class="bg-dark-900 border border-gray-800 rounded-2xl p-5 space-y-2">
+          <div class="text-amber-400 font-bold text-sm flex items-center space-x-2">
+            <i class="fa-solid fa-chart-line"></i>
+            <span>2. Shannon Entropy Engine</span>
+          </div>
+          <p class="text-gray-400 leading-relaxed">
+            Calculates information density $H(X) = -\sum P(x) \log_2 P(x)$. Character diversity thresholds flag high-randomness hex and base64 strings.
+          </p>
+          <div class="text-[10px] text-gray-500 font-mono">Weight: 35% Confidence</div>
+        </div>
+
+        <div class="bg-dark-900 border border-gray-800 rounded-2xl p-5 space-y-2">
+          <div class="text-emerald-400 font-bold text-sm flex items-center space-x-2">
+            <i class="fa-solid fa-code"></i>
+            <span>3. Variable Context Analysis</span>
+          </div>
+          <p class="text-gray-400 leading-relaxed">
+            Examines assignment operands (`api_key`, `password`, `secret`, `token`, `cred`) to discern credentials from ordinary strings.
+          </p>
+          <div class="text-[10px] text-gray-500 font-mono">Weight: 25% Confidence</div>
+        </div>
+      </div>
+
+      <!-- 9. Architecture Pipeline Stack -->
+      <div class="bg-dark-900/80 border border-gray-800 rounded-2xl p-6 space-y-4">
+        <div class="text-xs font-bold uppercase tracking-wider text-gray-400">GitPulse System Pipeline & Technologies</div>
+        <div class="flex flex-wrap items-center justify-between gap-3 text-xs font-mono text-center">
+          <div class="p-3 bg-dark-800 border border-gray-700 rounded-xl flex-1 min-w-[120px]">
+            <strong class="text-blue-400 block mb-1">Frontend</strong>
+            <span class="text-gray-400">Tailwind CSS / HTML5 / Streamlit</span>
+          </div>
+          <span class="text-gray-600">&rarr;</span>
+          <div class="p-3 bg-dark-800 border border-gray-700 rounded-xl flex-1 min-w-[120px]">
+            <strong class="text-indigo-400 block mb-1">API Runtime</strong>
+            <span class="text-gray-400">FastAPI / Vercel Serverless</span>
+          </div>
+          <span class="text-gray-600">&rarr;</span>
+          <div class="p-3 bg-dark-800 border border-gray-700 rounded-xl flex-1 min-w-[120px]">
+            <strong class="text-amber-400 block mb-1">Detection Engine</strong>
+            <span class="text-gray-400">Shannon Entropy + Regex + Context</span>
+          </div>
+          <span class="text-gray-600">&rarr;</span>
+          <div class="p-3 bg-dark-800 border border-gray-700 rounded-xl flex-1 min-w-[120px]">
+            <strong class="text-emerald-400 block mb-1">Remediation Engine</strong>
+            <span class="text-gray-400">Unified Diff Patch (`difflib`)</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 10. Privacy & Security Information Notice -->
+    <section class="border border-blue-500/20 bg-blue-950/20 rounded-2xl p-6 text-xs text-gray-400 space-y-2">
+      <div class="flex items-center space-x-2 text-blue-400 font-bold text-sm">
+        <i class="fa-solid fa-user-shield text-base"></i>
+        <span>Security & Privacy Commitment</span>
+      </div>
+      <p class="leading-relaxed">
+        GitPulse is engineered for privacy and security. When using this web demonstration, code snippets are inspected purely in-memory within isolated serverless invocations and are never saved to disk or persistent storage. Never submit actual production keys or confidential customer credentials to any public web demonstration. All sample credentials included in GitPulse presets are synthetic mock credentials.
+      </p>
+    </section>
+
   </main>
 
   <!-- Footer -->
-  <footer class="border-t border-gray-800 py-6 text-center text-xs text-gray-500">
-    GitPulse DevSecOps Project • Shannon Information Entropy Secret Detection & Real-time Remediation
+  <footer class="border-t border-gray-800/80 py-8 bg-dark-900 text-center text-xs text-gray-500 space-y-2">
+    <div class="font-bold text-gray-400">GitPulse: Git Pre-Commit Secret Interceptor & Auto-Remediator</div>
+    <div>Built with Python 3, Claude Shannon Information Entropy, FastAPI & Tailwind CSS</div>
   </footer>
 
   <script src="/app.js"></script>

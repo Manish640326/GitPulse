@@ -49,6 +49,16 @@ class RemediateRequest(BaseModel):
     target_lang: Optional[str] = None
 
 PRESET_SAMPLES = {
+    "quick_demo": {
+        "title": "⚡ 30-Second Interview Demo",
+        "filename": "database_service.py",
+        "lang": "python",
+        "is_diff": False,
+        "content": '''# Database Client Configuration
+DATABASE_PASSWORD = "db_super_secret_password_987654321"
+API_KEY = "sk-proj-998877665544332211aabbccddeeff00112233"
+'''
+    },
     "vulnerable_python": {
         "title": "Python API Client (AWS, OpenAI, DB Password)",
         "filename": "service.py",
@@ -111,11 +121,33 @@ module.exports = config;
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "service": "GitPulse Secret Interceptor", "version": "1.0.0"}
+    return {"status": "ok", "service": "GitPulse Secret Interceptor", "version": "1.1.0"}
 
 @app.get("/api/presets")
 def get_presets():
     return PRESET_SAMPLES
+
+@app.get("/api/hooks/config")
+def get_hook_configs():
+    return {
+        "yaml_config": """# .pre-commit-config.yaml
+# Add GitPulse to your pre-commit pipeline
+repos:
+  - repo: local
+    hooks:
+      - id: gitpulse-interceptor
+        name: GitPulse Secret Interceptor
+        entry: py -m gitpulse.cli --staged
+        language: system
+        stages: [commit]
+""",
+        "shell_script": """#!/bin/sh
+# GitPulse Pre-Commit Hook (.git/hooks/pre-commit)
+echo "🛡️ [GitPulse] Intercepting pre-commit: Scanning staged changes..."
+py -m gitpulse.cli --staged
+exit $?
+"""
+    }
 
 @app.post("/api/scan")
 def scan_code(req: ScanRequest):

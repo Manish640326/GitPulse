@@ -1,12 +1,21 @@
-// GitPulse Frontend Controller
+// GitPulse Frontend Controller - DevSecOps Guardrail
 let currentMode = "preset";
-let activeFilename = "service.py";
+let activeFilename = "database_service.py";
 let isDiff = false;
 let findings = [];
 let remediationResult = null;
 let customEnvMap = {};
 
 const PRESETS = {
+  quick_demo: {
+    filename: "database_service.py",
+    is_diff: false,
+    lang: "Python",
+    content: `# Database Client Configuration
+DATABASE_PASSWORD = "db_super_secret_password_987654321"
+API_KEY = "sk-proj-998877665544332211aabbccddeeff00112233"
+`
+  },
   vulnerable_python: {
     filename: "service.py",
     is_diff: false,
@@ -69,16 +78,31 @@ window.addEventListener("DOMContentLoaded", () => {
   loadPreset();
 });
 
+// 8. 30-Second Interview Demo Trigger
+async function triggerQuickDemo() {
+  document.getElementById("presetSelect").value = "quick_demo";
+  switchMode("preset");
+  loadPreset();
+  
+  // Smooth scroll to workbench
+  document.getElementById("visualDashboard").scrollIntoView({ behavior: "smooth" });
+
+  // Run scan automatically
+  setTimeout(() => {
+    runScanner();
+  }, 250);
+}
+
 function switchMode(mode) {
   currentMode = mode;
   ["preset", "upload", "paste"].forEach(m => {
     const btn = document.getElementById("tab" + m.charAt(0).toUpperCase() + m.slice(1));
     const panel = document.getElementById("panel" + m.charAt(0).toUpperCase() + m.slice(1));
     if (m === mode) {
-      btn.className = "px-3 py-1.5 rounded-md bg-blue-600 text-white transition";
+      btn.className = "px-3 py-1.5 rounded-md bg-blue-600 text-white transition font-semibold";
       panel.classList.remove("hidden");
     } else {
-      btn.className = "px-3 py-1.5 rounded-md text-gray-400 hover:text-white transition";
+      btn.className = "px-3 py-1.5 rounded-md text-gray-400 hover:text-white transition font-semibold";
       panel.classList.add("hidden");
     }
   });
@@ -95,8 +119,7 @@ function switchMode(mode) {
 
 function loadPreset() {
   const key = document.getElementById("presetSelect").value;
-  const p = PRESETS[key];
-  if (!p) return;
+  const p = PRESETS[key] || PRESETS.quick_demo;
 
   activeFilename = p.filename;
   isDiff = p.is_diff;
@@ -135,7 +158,6 @@ function updateFileMetadata(filename, diffMode, lang) {
   } else {
     diffBadge.classList.add("hidden");
   }
-  document.getElementById("statLang").innerText = lang;
 }
 
 // Scanner Execution
@@ -148,7 +170,7 @@ async function runScanner() {
 
   const scanBtn = document.getElementById("scanBtn");
   const origBtnContent = scanBtn.innerHTML;
-  scanBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-lg"></i><span>Scanning Entropy & Signatures...</span>`;
+  scanBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-base"></i><span>Analyzing Shannon Entropy & Patterns...</span>`;
   scanBtn.disabled = true;
 
   try {
@@ -163,25 +185,18 @@ async function runScanner() {
       })
     });
 
-    if (!res.ok) throw new Error("Scanner API failed: " + (await res.text()));
+    if (!res.ok) throw new Error("Scanner API error: " + (await res.text()));
 
     const data = await res.json();
     findings = data.findings || [];
-    
-    // Update Metrics
-    document.getElementById("statSecrets").innerText = data.total_secrets;
-    document.getElementById("statEntropy").innerText = data.max_entropy > 0 ? `${data.max_entropy.toFixed(3)} b` : "0.0 b";
-    
-    const statRisk = document.getElementById("statRisk");
-    if (data.total_secrets > 0) {
-      statRisk.innerHTML = `<span class="text-red-400 font-bold">🚨 High Risk</span>`;
-    } else {
-      statRisk.innerHTML = `<span class="text-emerald-400 font-bold">✅ Safe</span>`;
-    }
 
+    // 2. Update Visual Security Dashboard
+    updateVisualDashboard(data);
+
+    // 3. Render "Why was this flagged?" Findings
     renderFindings();
 
-    // Trigger Auto-Remediation if secrets were found
+    // 4. Trigger Auto-Remediation & Transformations
     if (findings.length > 0) {
       await runRemediation(content);
     } else {
@@ -197,16 +212,72 @@ async function runScanner() {
   }
 }
 
+// 2. Visual Security Dashboard Updater
+function updateVisualDashboard(data) {
+  const count = data.total_secrets;
+  const entropy = data.max_entropy;
+  
+  // Dashboard Boxes
+  document.getElementById("dashSecretsCount").innerText = count;
+  document.getElementById("dashEntropyVal").innerText = entropy > 0 ? `${entropy.toFixed(2)} b` : "0.0 b";
+
+  const riskBadge = document.getElementById("dashRiskBadge");
+  const riskSub = document.getElementById("dashRiskSubtitle");
+  const scanStatus = document.getElementById("scanStatusIndicator");
+
+  if (count === 0) {
+    riskBadge.innerHTML = `<span class="text-emerald-400">🟢 CLEAN</span>`;
+    riskSub.innerText = "Commit Approved (All Clear)";
+    scanStatus.innerHTML = `<span class="text-emerald-400">Scan Complete: 0 alerts</span>`;
+    document.getElementById("detectedFeedCard").classList.add("hidden");
+  } else {
+    const isCritical = findings.some(f => f.risk_label === "CRITICAL" || f.entropy >= 4.5);
+    if (isCritical) {
+      riskBadge.innerHTML = `<span class="text-red-500">🔴 CRITICAL</span>`;
+      riskSub.innerText = "Commit Blocked (High Security Violation)";
+    } else {
+      riskBadge.innerHTML = `<span class="text-amber-400">🟠 HIGH</span>`;
+      riskSub.innerText = "Commit Blocked (Secrets Found)";
+    }
+    scanStatus.innerHTML = `<span class="text-red-400">Scan Complete: ${count} secret(s) intercepted</span>`;
+
+    // Populate Detected Secrets Summary Feed (Requirement 2)
+    const feedCard = document.getElementById("detectedFeedCard");
+    const feedList = document.getElementById("detectedFeedList");
+    feedCard.classList.remove("hidden");
+
+    let feedHtml = "";
+    findings.forEach(f => {
+      const isCrit = f.risk_label === "CRITICAL" || f.entropy >= 4.5;
+      const badgeStyle = isCrit ? "bg-red-500/20 text-red-400 border border-red-500/30" : "bg-amber-500/20 text-amber-400 border border-amber-500/30";
+      feedHtml += `
+        <div class="flex items-center justify-between bg-dark-900 border border-gray-800 rounded-xl px-4 py-2.5 text-xs">
+          <div class="flex items-center space-x-2.5">
+            <span class="text-amber-400 text-sm">⚠</span>
+            <span class="font-bold text-gray-200">${f.rule_name}</span>
+            <span class="text-gray-500 font-mono text-[11px]">(${f.file_path}:${f.line_number})</span>
+          </div>
+          <span class="font-bold text-[10px] px-2.5 py-0.5 rounded-full uppercase ${badgeStyle}">
+            ${f.risk_label || "HIGH"}
+          </span>
+        </div>
+      `;
+    });
+    feedList.innerHTML = feedHtml;
+  }
+}
+
+// 3. Render "Why was this flagged?" Detailed Findings
 function renderFindings() {
   const container = document.getElementById("findingsContainer");
   const reveal = document.getElementById("unmaskToggle").checked;
 
   if (findings.length === 0) {
     container.innerHTML = `
-      <div class="text-center py-8 text-emerald-400 bg-emerald-950/20 border border-emerald-500/20 rounded-xl">
-        <i class="fa-solid fa-circle-check text-2xl mb-1"></i>
-        <div class="font-bold">No Hardcoded Secrets Detected!</div>
-        <div class="text-xs text-gray-400 mt-1">Code conforms to DevSecOps baseline hygiene.</div>
+      <div class="text-center py-12 text-emerald-400 bg-emerald-950/20 border border-emerald-500/30 rounded-2xl space-y-2">
+        <i class="fa-solid fa-circle-check text-3xl text-emerald-400"></i>
+        <div class="font-bold text-base">No Hardcoded Secrets Detected!</div>
+        <div class="text-xs text-gray-400">All scanned tokens satisfy entropy bounds and safe coding guidelines.</div>
       </div>
     `;
     return;
@@ -216,34 +287,77 @@ function renderFindings() {
   findings.forEach((f, idx) => {
     const secretDisplay = reveal ? f.secret_value : f.masked_value;
     const entropyPct = Math.min(100, Math.round((f.entropy / 6.0) * 100));
-    const badgeColor = f.entropy >= 4.2 ? "bg-red-500/20 text-red-400 border-red-500/30" : 
-                       (f.entropy >= 3.6 ? "bg-amber-500/20 text-amber-400 border-amber-500/30" : "bg-blue-500/20 text-blue-400 border-blue-500/30");
+    
+    // Checklist reasons
+    const reasons = f.reasons && f.reasons.length > 0 ? f.reasons : [
+      `High Shannon entropy (${f.entropy.toFixed(2)} bits > ${f.threshold.toFixed(2)} threshold)`,
+      `Credential-like identifier context`,
+      `Matches known pattern signature: ${f.rule_name}`,
+      `Appears directly as inline string literal in source code`
+    ];
+
+    let checklistHtml = reasons.map(r => `
+      <li class="flex items-start space-x-2 text-xs text-gray-300">
+        <i class="fa-solid fa-check text-emerald-400 mt-0.5 text-[11px]"></i>
+        <span>${r}</span>
+      </li>
+    `).join("");
 
     html += `
-      <div class="bg-dark-900 border border-gray-800 rounded-xl p-3.5 space-y-2 hover:border-gray-700 transition">
+      <div class="bg-dark-900 border border-gray-800 rounded-2xl p-5 space-y-4 hover:border-gray-700 transition">
+        
+        <!-- Header -->
         <div class="flex items-center justify-between">
-          <div class="flex items-center space-x-2">
-            <span class="text-xs font-bold text-gray-200">#${idx + 1} ${f.rule_name}</span>
-            <span class="text-[10px] uppercase font-bold px-2 py-0.5 rounded border ${badgeColor}">${f.entropy_level}</span>
+          <div class="flex items-center space-x-2.5">
+            <span class="w-6 h-6 rounded-full bg-red-500/20 text-red-400 font-bold flex items-center justify-center text-xs">#${idx + 1}</span>
+            <span class="text-sm font-bold text-white">${f.rule_name}</span>
+            <span class="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30 uppercase">
+              ${f.risk_badge || "🔴 HIGH"}
+            </span>
           </div>
           <span class="text-xs text-gray-400 font-mono">${f.file_path}:${f.line_number}</span>
         </div>
 
-        <div class="bg-dark-800/90 rounded-lg p-2.5 font-mono text-xs text-red-300 border-l-4 border-red-500 flex justify-between items-center">
-          <span class="truncate pr-2">${secretDisplay}</span>
-          <span class="text-[10px] text-gray-400 font-sans">Entropy: <strong class="text-amber-400">${f.entropy.toFixed(3)}</strong> bits</span>
+        <!-- Secret Snippet Box -->
+        <div class="bg-dark-850 rounded-xl p-3.5 font-mono text-xs border-l-4 border-l-red-500 flex flex-col sm:flex-row justify-between sm:items-center gap-2">
+          <div class="text-red-300 truncate">
+            <span class="text-gray-500 select-none">$ </span>${f.line_content}
+          </div>
+          <div class="text-gray-400 text-[11px] shrink-0">
+            Entropy: <strong class="text-amber-400 font-bold">${f.entropy.toFixed(3)}</strong> bits
+          </div>
         </div>
 
-        <div class="w-full bg-dark-800 rounded-full h-1.5 overflow-hidden">
-          <div class="bg-gradient-to-r from-blue-500 to-red-500 h-1.5 rounded-full" style="width: ${entropyPct}%"></div>
+        <!-- Shannon Entropy Bar -->
+        <div class="space-y-1">
+          <div class="flex justify-between text-[11px] text-gray-400">
+            <span>Shannon Randomness: <strong>${f.entropy.toFixed(2)} / 6.00 bits</strong></span>
+            <span>Threshold: ${f.threshold.toFixed(2)} bits</span>
+          </div>
+          <div class="w-full bg-dark-800 rounded-full h-1.5 overflow-hidden">
+            <div class="bg-gradient-to-r from-blue-500 via-amber-500 to-red-500 h-1.5 rounded-full" style="width: ${entropyPct}%"></div>
+          </div>
         </div>
 
-        <div class="flex items-center space-x-2 text-xs pt-1">
-          <span class="text-gray-400 font-medium">Env Var:</span>
+        <!-- 3. Why was this flagged? Section (Requirement 3) -->
+        <div class="bg-dark-950/70 border border-gray-800/80 rounded-xl p-3.5 space-y-2">
+          <div class="text-[11px] uppercase font-extrabold text-blue-400 tracking-wider flex items-center space-x-1.5">
+            <i class="fa-solid fa-circle-question"></i>
+            <span>Why was this flagged?</span>
+          </div>
+          <ul class="space-y-1.5">
+            ${checklistHtml}
+          </ul>
+        </div>
+
+        <!-- Editable Suggested Env Var -->
+        <div class="flex items-center space-x-2 text-xs pt-1 border-t border-gray-800">
+          <span class="text-gray-400 font-semibold shrink-0">Safe Env Variable:</span>
           <input type="text" value="${customEnvMap[f.secret_value] || f.suggested_env_var}" 
             onchange="updateCustomEnv('${f.secret_value}', this.value)"
-            class="bg-dark-800 border border-gray-700 rounded px-2 py-1 text-xs text-blue-300 font-mono focus:outline-none focus:border-blue-500 flex-1">
+            class="bg-dark-800 border border-gray-700 rounded-lg px-3 py-1.5 text-xs text-blue-300 font-mono focus:outline-none focus:border-blue-500 flex-1">
         </div>
+
       </div>
     `;
   });
@@ -257,7 +371,7 @@ function updateCustomEnv(secretVal, newEnvName) {
   runRemediation(content);
 }
 
-// Auto-Remediation Execution
+// 4. Auto-Remediation & Transformation Preview
 async function runRemediation(content) {
   try {
     const res = await fetch("/api/remediate", {
@@ -277,7 +391,10 @@ async function runRemediation(content) {
     remediationResult = await res.json();
     document.getElementById("remediationCard").classList.remove("hidden");
 
-    // Populate Views
+    // Populate Transformation Boxes (- old \n + new)
+    renderTransformationPreview();
+
+    // Populate Tabs
     document.getElementById("patchCodeBlock").innerText = remediationResult.patch_text;
     document.getElementById("sideOrigBlock").innerText = content;
     document.getElementById("sideRemBlock").innerText = remediationResult.sanitized_code;
@@ -286,6 +403,31 @@ async function runRemediation(content) {
   } catch (err) {
     console.error(err);
   }
+}
+
+// 4. Render Transformation Preview (- old, + new)
+function renderTransformationPreview() {
+  const box = document.getElementById("transformationBoxes");
+  let html = "";
+  findings.forEach(f => {
+    const envName = customEnvMap[f.secret_value] || f.suggested_env_var;
+    const oldLine = f.line_content;
+    let newLine = oldLine.replace(`"${f.secret_value}"`, `os.getenv("${envName}")`)
+                         .replace(`'${f.secret_value}'`, `os.getenv("${envName}")`)
+                         .replace(f.secret_value, `os.getenv("${envName}")`);
+
+    html += `
+      <div class="bg-dark-900 border border-gray-800 rounded-xl p-3 space-y-1">
+        <div class="text-red-400 bg-red-950/30 px-2 py-1 rounded">
+          <span class="select-none font-bold mr-1">-</span> ${oldLine}
+        </div>
+        <div class="text-emerald-400 bg-emerald-950/30 px-2 py-1 rounded">
+          <span class="select-none font-bold mr-1">+</span> ${newLine}
+        </div>
+      </div>
+    `;
+  });
+  box.innerHTML = html;
 }
 
 function switchOutputTab(tab) {
@@ -302,7 +444,38 @@ function switchOutputTab(tab) {
   });
 }
 
-// Approval Workflow
+// 5. Pre-Commit Hook Copy Helpers
+function copyPreCommitScript() {
+  const script = `#!/bin/sh
+# GitPulse Pre-Commit Hook (.git/hooks/pre-commit)
+echo "🛡️ GitPulse: Scanning staged changes..."
+py -m gitpulse.cli --staged
+EXIT_CODE=$?
+if [ $EXIT_CODE -ne 0 ]; then
+    echo "❌ COMMIT BLOCKED: Secret(s) detected!"
+    exit 1
+fi
+exit 0`;
+  navigator.clipboard.writeText(script).then(() => {
+    alert("Copied GitPulse pre-commit shell script to clipboard! Save to .git/hooks/pre-commit");
+  });
+}
+
+function copyPreCommitYaml() {
+  const yaml = `repos:
+  - repo: local
+    hooks:
+      - id: gitpulse-interceptor
+        name: GitPulse Secret Interceptor
+        entry: py -m gitpulse.cli --staged
+        language: system
+        stages: [commit]`;
+  navigator.clipboard.writeText(yaml).then(() => {
+    alert("Copied .pre-commit-config.yaml to clipboard!");
+  });
+}
+
+// Approval & Downloads
 function approvePatch() {
   document.getElementById("downloadsArea").classList.remove("hidden");
 }
