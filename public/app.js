@@ -75,8 +75,45 @@ module.exports = config;
 
 // Initialize
 window.addEventListener("DOMContentLoaded", () => {
+  initTheme();
   loadPreset();
 });
+
+// Theme Management (Light / Dark with localStorage & OS Preference)
+function initTheme() {
+  const isDark = document.documentElement.classList.contains("dark");
+  updateThemeIcon(isDark);
+
+  // Listen to OS theme changes if user has not explicitly set a preference
+  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (e) => {
+    if (!localStorage.getItem("gitpulse-theme")) {
+      if (e.matches) {
+        document.documentElement.classList.add("dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+      }
+      updateThemeIcon(e.matches);
+    }
+  });
+}
+
+function toggleTheme() {
+  const isDark = document.documentElement.classList.toggle("dark");
+  localStorage.setItem("gitpulse-theme", isDark ? "dark" : "light");
+  updateThemeIcon(isDark);
+}
+
+function updateThemeIcon(isDark) {
+  const icon = document.getElementById("themeIcon");
+  if (!icon) return;
+  if (isDark) {
+    // In dark mode: show Sun icon to switch to light mode
+    icon.className = "fa-solid fa-sun text-amber-400 text-sm";
+  } else {
+    // In light mode: show Moon icon to switch to dark mode
+    icon.className = "fa-solid fa-moon text-slate-700 text-sm";
+  }
+}
 
 // 8. 30-Second Interview Demo Trigger
 async function triggerQuickDemo() {
@@ -84,10 +121,9 @@ async function triggerQuickDemo() {
   switchMode("preset");
   loadPreset();
   
-  // Smooth scroll to workbench
+  // Smooth scroll to dashboard
   document.getElementById("visualDashboard").scrollIntoView({ behavior: "smooth" });
 
-  // Run scan automatically
   setTimeout(() => {
     runScanner();
   }, 250);
@@ -102,7 +138,7 @@ function switchMode(mode) {
       btn.className = "px-3 py-1.5 rounded-md bg-blue-600 text-white transition font-semibold";
       panel.classList.remove("hidden");
     } else {
-      btn.className = "px-3 py-1.5 rounded-md text-gray-400 hover:text-white transition font-semibold";
+      btn.className = "px-3 py-1.5 rounded-md text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white transition font-semibold";
       panel.classList.add("hidden");
     }
   });
@@ -226,20 +262,20 @@ function updateVisualDashboard(data) {
   const scanStatus = document.getElementById("scanStatusIndicator");
 
   if (count === 0) {
-    riskBadge.innerHTML = `<span class="text-emerald-400">🟢 CLEAN</span>`;
+    riskBadge.innerHTML = `<span class="text-emerald-600 dark:text-emerald-400">🟢 CLEAN</span>`;
     riskSub.innerText = "Commit Approved (All Clear)";
-    scanStatus.innerHTML = `<span class="text-emerald-400">Scan Complete: 0 alerts</span>`;
+    scanStatus.innerHTML = `<span class="text-emerald-600 dark:text-emerald-400">Scan Complete: 0 alerts</span>`;
     document.getElementById("detectedFeedCard").classList.add("hidden");
   } else {
     const isCritical = findings.some(f => f.risk_label === "CRITICAL" || f.entropy >= 4.5);
     if (isCritical) {
-      riskBadge.innerHTML = `<span class="text-red-500">🔴 CRITICAL</span>`;
+      riskBadge.innerHTML = `<span class="text-red-600 dark:text-red-500">🔴 CRITICAL</span>`;
       riskSub.innerText = "Commit Blocked (High Security Violation)";
     } else {
-      riskBadge.innerHTML = `<span class="text-amber-400">🟠 HIGH</span>`;
+      riskBadge.innerHTML = `<span class="text-amber-600 dark:text-amber-400">🟠 HIGH</span>`;
       riskSub.innerText = "Commit Blocked (Secrets Found)";
     }
-    scanStatus.innerHTML = `<span class="text-red-400">Scan Complete: ${count} secret(s) intercepted</span>`;
+    scanStatus.innerHTML = `<span class="text-red-600 dark:text-red-400 font-semibold">Scan Complete: ${count} secret(s) intercepted</span>`;
 
     // Populate Detected Secrets Summary Feed (Requirement 2)
     const feedCard = document.getElementById("detectedFeedCard");
@@ -249,13 +285,15 @@ function updateVisualDashboard(data) {
     let feedHtml = "";
     findings.forEach(f => {
       const isCrit = f.risk_label === "CRITICAL" || f.entropy >= 4.5;
-      const badgeStyle = isCrit ? "bg-red-500/20 text-red-400 border border-red-500/30" : "bg-amber-500/20 text-amber-400 border border-amber-500/30";
+      const badgeStyle = isCrit 
+        ? "bg-red-500/15 text-red-700 dark:text-red-400 border border-red-500/30" 
+        : "bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30";
       feedHtml += `
-        <div class="flex items-center justify-between bg-dark-900 border border-gray-800 rounded-xl px-4 py-2.5 text-xs">
+        <div class="flex items-center justify-between bg-slate-50 dark:bg-dark-900 border border-slate-200 dark:border-gray-800 rounded-xl px-4 py-2.5 text-xs transition">
           <div class="flex items-center space-x-2.5">
-            <span class="text-amber-400 text-sm">⚠</span>
-            <span class="font-bold text-gray-200">${f.rule_name}</span>
-            <span class="text-gray-500 font-mono text-[11px]">(${f.file_path}:${f.line_number})</span>
+            <span class="text-amber-500 text-sm">⚠</span>
+            <span class="font-bold text-slate-800 dark:text-gray-200">${f.rule_name}</span>
+            <span class="text-slate-400 dark:text-gray-500 font-mono text-[11px]">(${f.file_path}:${f.line_number})</span>
           </div>
           <span class="font-bold text-[10px] px-2.5 py-0.5 rounded-full uppercase ${badgeStyle}">
             ${f.risk_label || "HIGH"}
@@ -274,10 +312,10 @@ function renderFindings() {
 
   if (findings.length === 0) {
     container.innerHTML = `
-      <div class="text-center py-12 text-emerald-400 bg-emerald-950/20 border border-emerald-500/30 rounded-2xl space-y-2">
-        <i class="fa-solid fa-circle-check text-3xl text-emerald-400"></i>
+      <div class="text-center py-12 text-emerald-700 dark:text-emerald-400 bg-emerald-50/70 dark:bg-emerald-950/20 border border-emerald-300 dark:border-emerald-500/30 rounded-2xl space-y-2">
+        <i class="fa-solid fa-circle-check text-3xl text-emerald-600 dark:text-emerald-400"></i>
         <div class="font-bold text-base">No Hardcoded Secrets Detected!</div>
-        <div class="text-xs text-gray-400">All scanned tokens satisfy entropy bounds and safe coding guidelines.</div>
+        <div class="text-xs text-slate-500 dark:text-gray-400">All scanned tokens satisfy entropy bounds and safe coding guidelines.</div>
       </div>
     `;
     return;
@@ -297,51 +335,51 @@ function renderFindings() {
     ];
 
     let checklistHtml = reasons.map(r => `
-      <li class="flex items-start space-x-2 text-xs text-gray-300">
-        <i class="fa-solid fa-check text-emerald-400 mt-0.5 text-[11px]"></i>
+      <li class="flex items-start space-x-2 text-xs text-slate-700 dark:text-gray-300">
+        <i class="fa-solid fa-check text-emerald-600 dark:text-emerald-400 mt-0.5 text-[11px]"></i>
         <span>${r}</span>
       </li>
     `).join("");
 
     html += `
-      <div class="bg-dark-900 border border-gray-800 rounded-2xl p-5 space-y-4 hover:border-gray-700 transition">
+      <div class="bg-white dark:bg-dark-900 border border-slate-200 dark:border-gray-800 rounded-2xl p-5 space-y-4 hover:border-blue-400 dark:hover:border-gray-700 transition shadow-sm">
         
         <!-- Header -->
         <div class="flex items-center justify-between">
           <div class="flex items-center space-x-2.5">
-            <span class="w-6 h-6 rounded-full bg-red-500/20 text-red-400 font-bold flex items-center justify-center text-xs">#${idx + 1}</span>
-            <span class="text-sm font-bold text-white">${f.rule_name}</span>
-            <span class="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30 uppercase">
+            <span class="w-6 h-6 rounded-full bg-red-500/15 text-red-700 dark:text-red-400 font-bold flex items-center justify-center text-xs">#${idx + 1}</span>
+            <span class="text-sm font-bold text-slate-900 dark:text-white">${f.rule_name}</span>
+            <span class="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-red-500/15 text-red-700 dark:text-red-400 border border-red-500/30 uppercase">
               ${f.risk_badge || "🔴 HIGH"}
             </span>
           </div>
-          <span class="text-xs text-gray-400 font-mono">${f.file_path}:${f.line_number}</span>
+          <span class="text-xs text-slate-400 dark:text-gray-400 font-mono">${f.file_path}:${f.line_number}</span>
         </div>
 
         <!-- Secret Snippet Box -->
-        <div class="bg-dark-850 rounded-xl p-3.5 font-mono text-xs border-l-4 border-l-red-500 flex flex-col sm:flex-row justify-between sm:items-center gap-2">
-          <div class="text-red-300 truncate">
-            <span class="text-gray-500 select-none">$ </span>${f.line_content}
+        <div class="bg-slate-50 dark:bg-dark-850 rounded-xl p-3.5 font-mono text-xs border-l-4 border-l-red-500 flex flex-col sm:flex-row justify-between sm:items-center gap-2">
+          <div class="text-red-700 dark:text-red-300 truncate">
+            <span class="text-slate-400 dark:text-gray-500 select-none">$ </span>${f.line_content}
           </div>
-          <div class="text-gray-400 text-[11px] shrink-0">
-            Entropy: <strong class="text-amber-400 font-bold">${f.entropy.toFixed(3)}</strong> bits
+          <div class="text-slate-500 dark:text-gray-400 text-[11px] shrink-0">
+            Entropy: <strong class="text-amber-600 dark:text-amber-400 font-bold">${f.entropy.toFixed(3)}</strong> bits
           </div>
         </div>
 
         <!-- Shannon Entropy Bar -->
         <div class="space-y-1">
-          <div class="flex justify-between text-[11px] text-gray-400">
+          <div class="flex justify-between text-[11px] text-slate-500 dark:text-gray-400">
             <span>Shannon Randomness: <strong>${f.entropy.toFixed(2)} / 6.00 bits</strong></span>
             <span>Threshold: ${f.threshold.toFixed(2)} bits</span>
           </div>
-          <div class="w-full bg-dark-800 rounded-full h-1.5 overflow-hidden">
+          <div class="w-full bg-slate-200 dark:bg-dark-800 rounded-full h-1.5 overflow-hidden">
             <div class="bg-gradient-to-r from-blue-500 via-amber-500 to-red-500 h-1.5 rounded-full" style="width: ${entropyPct}%"></div>
           </div>
         </div>
 
         <!-- 3. Why was this flagged? Section (Requirement 3) -->
-        <div class="bg-dark-950/70 border border-gray-800/80 rounded-xl p-3.5 space-y-2">
-          <div class="text-[11px] uppercase font-extrabold text-blue-400 tracking-wider flex items-center space-x-1.5">
+        <div class="bg-slate-50 dark:bg-dark-950/70 border border-slate-200 dark:border-gray-800/80 rounded-xl p-3.5 space-y-2">
+          <div class="text-[11px] uppercase font-extrabold text-blue-700 dark:text-blue-400 tracking-wider flex items-center space-x-1.5">
             <i class="fa-solid fa-circle-question"></i>
             <span>Why was this flagged?</span>
           </div>
@@ -351,11 +389,11 @@ function renderFindings() {
         </div>
 
         <!-- Editable Suggested Env Var -->
-        <div class="flex items-center space-x-2 text-xs pt-1 border-t border-gray-800">
-          <span class="text-gray-400 font-semibold shrink-0">Safe Env Variable:</span>
+        <div class="flex items-center space-x-2 text-xs pt-1 border-t border-slate-200 dark:border-gray-800">
+          <span class="text-slate-600 dark:text-gray-400 font-semibold shrink-0">Safe Env Variable:</span>
           <input type="text" value="${customEnvMap[f.secret_value] || f.suggested_env_var}" 
             onchange="updateCustomEnv('${f.secret_value}', this.value)"
-            class="bg-dark-800 border border-gray-700 rounded-lg px-3 py-1.5 text-xs text-blue-300 font-mono focus:outline-none focus:border-blue-500 flex-1">
+            class="bg-slate-50 dark:bg-dark-800 border border-slate-300 dark:border-gray-700 rounded-lg px-3 py-1.5 text-xs text-blue-700 dark:text-blue-300 font-mono focus:outline-none focus:border-blue-500 flex-1 transition">
         </div>
 
       </div>
@@ -417,12 +455,14 @@ function renderTransformationPreview() {
                          .replace(f.secret_value, `os.getenv("${envName}")`);
 
     html += `
-      <div class="bg-dark-900 border border-gray-800 rounded-xl p-3 space-y-1">
-        <div class="text-red-400 bg-red-950/30 px-2 py-1 rounded">
-          <span class="select-none font-bold mr-1">-</span> ${oldLine}
+      <div class="bg-slate-50 dark:bg-dark-900 border border-slate-200 dark:border-gray-800 rounded-xl p-3 space-y-1.5 transition">
+        <div class="text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/30 px-2.5 py-1.5 rounded-lg flex items-center text-xs font-mono">
+          <span class="select-none font-bold mr-2 text-red-500">-</span>
+          <span class="truncate">${oldLine}</span>
         </div>
-        <div class="text-emerald-400 bg-emerald-950/30 px-2 py-1 rounded">
-          <span class="select-none font-bold mr-1">+</span> ${newLine}
+        <div class="text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/30 px-2.5 py-1.5 rounded-lg flex items-center text-xs font-mono">
+          <span class="select-none font-bold mr-2 text-emerald-500">+</span>
+          <span class="truncate">${newLine}</span>
         </div>
       </div>
     `;
@@ -435,10 +475,10 @@ function switchOutputTab(tab) {
     const btn = document.getElementById("tab" + t.charAt(0).toUpperCase() + t.slice(1));
     const view = document.getElementById("view" + t.charAt(0).toUpperCase() + t.slice(1));
     if (t === tab) {
-      btn.className = "px-3 py-1 rounded bg-blue-600 text-white font-semibold";
+      btn.className = "px-3 py-1 rounded bg-blue-600 text-white font-semibold shadow-sm";
       view.classList.remove("hidden");
     } else {
-      btn.className = "px-3 py-1 rounded text-gray-400 hover:text-white font-semibold";
+      btn.className = "px-3 py-1 rounded text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white font-semibold";
       view.classList.add("hidden");
     }
   });
