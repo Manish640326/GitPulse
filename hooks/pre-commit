@@ -1,0 +1,25 @@
+#!/bin/sh
+# GitPulse Pre-Commit Secret Interceptor Hook
+# Place this file in .git/hooks/pre-commit and make it executable: chmod +x .git/hooks/pre-commit
+
+echo "🛡️  [GitPulse] Intercepting pre-commit: Scanning staged changes for secrets..."
+
+# Prefer py on Windows if available, otherwise python3/python
+if command -v py >/dev/null 2>&1; then
+    py -m gitpulse.cli --staged
+elif command -v python3 >/dev/null 2>&1; then
+    python3 -m gitpulse.cli --staged
+else
+    python -m gitpulse.cli --staged
+fi
+
+EXIT_CODE=$?
+if [ $EXIT_CODE -ne 0 ]; then
+    echo ""
+    echo "❌ [GitPulse] COMMIT BLOCKED: Secret(s) detected in staged changes!"
+    echo "💡 Run 'streamlit run app.py' to launch GitPulse UI and auto-remediate."
+    exit 1
+fi
+
+echo "✅ [GitPulse] All clear! No secrets detected."
+exit 0

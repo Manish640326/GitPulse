@@ -1,0 +1,13 @@
+diff --git a/src/cloud_client.py b/src/cloud_client.py
+index e69de29..b1b2c3d 100644
+--- a/src/cloud_client.py
++++ b/src/cloud_client.py
+@@ -12,6 +12,12 @@ def initialize_cloud_sync():
+     print("Connecting to storage bucket...")
++    # Added direct authentication credentials
++    aws_key = "AKIA1234567890ABCDEF"
++    github_token = "ghp_1234567890abcdefghijklmnopqrstuvwxyz"
++    stripe_secret = "sk_live_51Abcdefghijklmnopqrstuvw"
++
+     session = create_session(aws_key)
+     return session
