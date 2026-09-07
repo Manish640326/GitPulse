@@ -71,6 +71,23 @@ py -m streamlit run app.py
 ```
 Open `http://localhost:8501` in your browser.
 
+### 3. Deploy to Vercel (1-Click Web Deployment)
+
+GitPulse includes native **Vercel Serverless Function** integration (`api/index.py` + `public/index.html`):
+
+1. Commit and push the repository to GitHub:
+   ```bash
+   git add .
+   git commit -m "Add Vercel serverless support"
+   git push origin main
+   ```
+2. Go to [vercel.com](https://vercel.com) and click **"Add New Project"**.
+3. Import your **`GitPulse`** GitHub repository.
+4. Leave all build settings as default and click **"Deploy"**!
+   - Vercel automatically detects `vercel.json`.
+   - The Python scanner runs as an on-demand serverless function (`/api/scan`, `/api/remediate`).
+   - The responsive DevSecOps UI is served globally with zero configuration.
+
 ---
 
 ## 💻 CLI & Git Pre-Commit Hook Usage
